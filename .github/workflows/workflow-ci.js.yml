@@ -4,8 +4,6 @@
 name: Workflow CI(Continuos Integration)
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
