@@ -1,1 +1,0 @@
-console.log("Generating release notes...");
