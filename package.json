@@ -1,0 +1,14 @@
+{
+  "name": "autom8me",
+  "version": "1.0.0",
+  "description": "Joao Schneider",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
