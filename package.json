@@ -6,10 +6,13 @@
   "scripts": {
     "start": "node app.js"
   },
+  "type": "module",
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@google/genai": "^0.15.0",
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0"
   }
 }
