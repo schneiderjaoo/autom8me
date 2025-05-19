@@ -5,13 +5,12 @@ name: CI for Node.js
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: 
+      - "**" #Para todas as branches
 
 jobs:
   tests:
-
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v4
     - name: Use Node.js
@@ -20,3 +19,4 @@ jobs:
         node-version: 20.
     - run: npm install
     - run: npm ci
+    - run: npm install --save-dev eslint
