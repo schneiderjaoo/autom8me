@@ -1,12 +1,31 @@
 package com.docs.git;
 
-import org.springframework.boot.SpringApplication;
+import com.docs.git.dto.GitCommitDTO;
+import com.docs.git.service.CommitService;
+import com.docs.git.service.GitLogService;
+
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import java.util.List;
 
 @SpringBootApplication
 public class GitApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(GitApplication.class, args);
-	}
+    public static void main(String[] args) {
+        GitLogService gitLogService = new GitLogService();
+        CommitService commitService = new CommitService(new com.docs.git.service.ClassifierService());
+
+        List<GitCommitDTO> commits = gitLogService.getGitLogs();
+
+        commits = commitService.classifyCommits(commits);
+
+        System.out.println("Commits capturados:");
+        for (GitCommitDTO commit : commits) {
+            System.out.printf("%s | %s | %s | %s%n",
+                    commit.getSha(),
+                    commit.getType(),
+                    commit.getMessage(),
+                    commit.getDate());
+        }
+    }
 }
