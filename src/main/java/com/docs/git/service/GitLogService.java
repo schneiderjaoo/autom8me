@@ -16,6 +16,7 @@ public class GitLogService {
 
         try {
             // exec git log a onde ele esta
+            // git log --pretty=format:"%H|%s|%cd" --date=iso
             Process process = new ProcessBuilder("git", "log",
                     "--pretty=format:%H|%s|%cd", "--date=iso"
             ).start();
@@ -45,3 +46,7 @@ public class GitLogService {
         return commits;
     }
 }
+/*
+Aqui e o coracao do projeto em minha opiniao, e aqui que realiza a coleta dos commits
+do repositorio git local utilizando o log e assim alimentando a lista.
+ */

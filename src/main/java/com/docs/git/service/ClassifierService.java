@@ -25,7 +25,11 @@ public class ClassifierService {
         } else if (lowerMsg.startsWith("release") || lowerMsg.contains("version")) {
             return CommitType.RELEASE;
         } else {
-            return CommitType.DOCS; // Default to DOCS for unrecognized messages
+            return CommitType.DOCS; // Valor padrao para mensagens nao classificadas
         }
     }
 }
+/*
+Basicamente essa classe usa o enum CommitTyoe para classificar todas as mensagens de commit coletadas do git log
+para dessa forma filtrando dados de uma maneira que facilite a geracao de release notes.
+*/

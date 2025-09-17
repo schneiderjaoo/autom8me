@@ -23,3 +23,6 @@ public class CommitService {
         return commits;
     }
 }
+/*
+Este servico e responsavel por classificar os commits usando o classificador.
+ */

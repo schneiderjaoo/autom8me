@@ -59,3 +59,6 @@ public class GeminiService {
             """ + prompt;
     }
 }
+/*
+Integracao com a API do Gemini, utilizando Engenharia de Prompt para gerar a release notes.
+ */
