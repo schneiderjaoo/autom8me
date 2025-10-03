@@ -2,6 +2,7 @@ package com.docs.git;
 
 import com.docs.git.dto.GitCommitDTO;
 import com.docs.git.service.CommitService;
+import com.docs.git.service.GeminiService;
 import com.docs.git.service.GitLogService;
 import com.docs.git.service.ReleaseNotesService;
 
@@ -16,22 +17,19 @@ public class GitApplication {
         GitLogService gitLogService = new GitLogService();
         CommitService commitService = new CommitService(new com.docs.git.service.ClassifierService());
         ReleaseNotesService releaseNotes = new ReleaseNotesService();
+        GeminiService geminiService = new GeminiService();
 
+        // captura os commits do git
         List<GitCommitDTO> commits = gitLogService.getGitLogs();
 
         commits = commitService.classifyCommits(commits);
 
-        System.out.println("Commits capturados:");
-        for (GitCommitDTO commit : commits) {
-            System.out.printf("%s | %s | %s | %s%n",
-                    commit.getSha(),
-                    commit.getType(),
-                    commit.getMessage(),
-                    commit.getDate());
-        }
-
+        // Release Notes tradicional
         String releaseNotesTemplate = releaseNotes.generateReleaseNotes(commits, "beta", "0.2.0");
+        
+        System.out.println(releaseNotesTemplate+"\n");
 
-        System.out.println("\nRelease Notes:\n" + releaseNotesTemplate);
+        String intelligentReleaseNotes = geminiService.generateResponse(releaseNotesTemplate);
+        System.out.println(intelligentReleaseNotes);
     }
 }

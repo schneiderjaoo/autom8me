@@ -17,11 +17,11 @@ public class ReleaseNotesService {
         StringBuilder texto = new StringBuilder();
 
         // Cabeçalho
-        texto.append("## First \"BETA\" Release — ").append(tag).append("\n");
+        texto.append("## Primeira \"Release\" Beta ").append(tag).append("\n");
         texto.append("**Tag:** ").append(tag).append("\n");
         texto.append("**Status:** Pre-release\n");
-        texto.append("**Date:** ").append(hoje).append("\n");
-        texto.append("### Highlights\n\n");
+        texto.append("**Data:** ").append(hoje).append("\n");
+        texto.append("### Destaques\n\n");
 
         // Funcionalidades (FEAT)
         texto.append("**Novas Funcionalidades:**\n");
