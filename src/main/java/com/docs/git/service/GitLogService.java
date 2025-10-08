@@ -17,8 +17,12 @@ public class GitLogService {
         try {
             // exec git log a onde ele esta
             // git log --pretty=format:"%H|%s|%cd" --date=iso
-            Process process = new ProcessBuilder("git", "log",
-                    "--pretty=format:%H|%s|%cd", "--date=iso"
+            Process process = new ProcessBuilder(
+                    "git",
+                    "log",
+                    "--since=15 days ago",
+                    "--pretty=format:%H|%s|%cd",
+                    "--date=iso"
             ).start();
 
             // pega a saida do console
