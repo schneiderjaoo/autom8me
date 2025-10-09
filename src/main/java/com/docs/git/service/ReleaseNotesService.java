@@ -11,20 +11,44 @@ import java.util.List;
 @Service
 public class ReleaseNotesService {
 
-    public String generateReleaseNotes(List<GitCommitDTO> commits, String version, String tag) {
-        String hoje = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    public String generateReleaseNotes(List<GitCommitDTO> commits, int[] version, String tag, String idioma) {
+
+        idioma = idioma.toLowerCase();
+
+        String quinzenalLabel = idioma.equals("pt-br") ? "Quinzenal" :
+                            idioma.equals("en-us") ? "Biweekly" : "Quincenal";
+        String versaoLabel = idioma.equals("pt-br") ? "**Versão: **" :
+                idioma.equals("en-us") ? "**Version: **" : "**Versión: **";
+        String dataLabel = idioma.equals("pt-br") ? "**Data: **" :
+                idioma.equals("en-us") ? "**Date: **" : "**Fecha: **";
+        String formatoDataIdiomaLabel = idioma.equals("pt-BR") ? LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) :
+                            idioma.equals("en-us") ? LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) :
+                                    LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        String destaquesLabel = idioma.equals("pt-br") ? "## Destaques" :
+                            idioma.equals("en-us") ? "## Highlights" : "## Destacados";
+        String novasFuncionalidadesLabel = idioma.equals("pt-br") ? "**Novas Funcionalidades:**" :
+                            idioma.equals("en-us") ? "**New Features:**" : "**Nuevas Funcionalidades:**";
+        String correcoesLabel = idioma.equals("pt-br") ? "**Correções:**" :
+                            idioma.equals("en-us") ? "**Fixes:**" : "**Correcciones:**";
+        String hotfixesLabel = idioma.equals("pt-br") ? "**Correções Críticas:**" :
+                            idioma.equals("en-us") ? "**Critical Fixes:**" : "**Correcciones Críticas:**";
+        String melhoriasLabel = idioma.equals("pt-br") ? "**Melhorias:**" :
+                            idioma.equals("en-us") ? "**Improvements:**" : "**Mejoras:**";
+        String docsLabel = idioma.equals("pt-br") ? "**Documentação:**" :
+                idioma.equals("en-us") ? "**Documentation:**" : "**Documentación:**";
+        String motivacionalLabel = idioma.equals("pt-br") ? "*É aqui que a automação começa*" :
+                            idioma.equals("en-us") ? "*This is where automation begins*" : "*Aquí es donde comienza la automatización*";
 
         StringBuilder texto = new StringBuilder();
 
         // Cabeçalho
-        texto.append("## Primeira \"Release\" Beta ").append(tag).append("\n");
-        texto.append("**Tag:** ").append(tag).append("\n");
-        texto.append("**Status:** Pre-release\n");
-        texto.append("**Data:** ").append(hoje).append("\n");
-        texto.append("### Destaques\n\n");
+        texto.append("\n# Release Notes ").append(quinzenalLabel).append(" \n\n");
+        texto.append(versaoLabel).append(tag).append("\n");
+        texto.append(dataLabel).append(formatoDataIdiomaLabel).append("\n\n");
+        texto.append(destaquesLabel).append("\n\n");
 
         // Funcionalidades (FEAT)
-        texto.append("**Novas Funcionalidades:**\n");
+        texto.append(novasFuncionalidadesLabel).append("\n");
         for (GitCommitDTO commit : commits) {
             if (commit.getType() == CommitType.FEAT) {
                 String mensagem = limparMensagem(commit.getMessage());
@@ -34,7 +58,7 @@ public class ReleaseNotesService {
         texto.append("\n");
 
         // Correções (FIX)
-        texto.append("**Correções:**\n");
+        texto.append(correcoesLabel).append("\n");
         for (GitCommitDTO commit : commits) {
             if (commit.getType() == CommitType.FIX) {
                 String mensagem = limparMensagem(commit.getMessage());
@@ -44,7 +68,7 @@ public class ReleaseNotesService {
         texto.append("\n");
 
         // Hotfixes (HOTFIX)
-        texto.append("**Correções Críticas:**\n");
+        texto.append(hotfixesLabel).append("\n");
         for (GitCommitDTO commit : commits) {
             if (commit.getType() == CommitType.HOTFIX) {
                 String mensagem = limparMensagem(commit.getMessage());
@@ -53,8 +77,18 @@ public class ReleaseNotesService {
         }
         texto.append("\n");
 
+        // Melhorias (REFACTOR)
+        texto.append(melhoriasLabel).append("\n");
+        for (GitCommitDTO commit : commits) {
+            if (commit.getType() == CommitType.REFACTOR) {
+                String mensagem = limparMensagem(commit.getMessage());
+                texto.append("- ").append(mensagem).append(".\n");
+            }
+        }
+        texto.append("\n");
+
         // Documentação (DOCS)
-        texto.append("**Documentação:**\n");
+        texto.append(docsLabel).append("\n");
         for (GitCommitDTO commit : commits) {
             if (commit.getType() == CommitType.DOCS) {
                 String mensagem = limparMensagem(commit.getMessage());
@@ -65,18 +99,8 @@ public class ReleaseNotesService {
         }
         texto.append("\n");
 
-        // Melhorias (REFACTOR)
-        texto.append("**Melhorias:**\n");
-        for (GitCommitDTO commit : commits) {
-            if (commit.getType() == CommitType.REFACTOR) {
-                String mensagem = limparMensagem(commit.getMessage());
-                texto.append("- ").append(mensagem).append(".\n");
-            }
-        }
-        texto.append("\n");
-
         // Frases motivacionais
-        texto.append("> *É aqui que a automação começa* \n");
+        texto.append(motivacionalLabel).append("\n");
 
         return texto.toString();
     }
@@ -84,20 +108,24 @@ public class ReleaseNotesService {
     // Método simples para limpar a mensagem
     private String limparMensagem(String mensagem) {
         // Remove "feat:", "fix:", etc.
-        if (mensagem.toLowerCase().startsWith("feat:")) {
-            mensagem = mensagem.substring(5).trim();
-        }
-        if (mensagem.toLowerCase().startsWith("fix:")) {
-            mensagem = mensagem.substring(4).trim();
-        }
-        if (mensagem.toLowerCase().startsWith("hotfix:")) {
+        if (mensagem.toLowerCase().startsWith("feat - ")) {
             mensagem = mensagem.substring(7).trim();
-        }
-        if (mensagem.toLowerCase().startsWith("docs:")) {
-            mensagem = mensagem.substring(5).trim();
-        }
-        if (mensagem.toLowerCase().startsWith("refactor:")) {
+        } else if (mensagem.toLowerCase().startsWith("fix - ")) {
+            mensagem = mensagem.substring(6).trim();
+        } else if (mensagem.toLowerCase().startsWith("bugfix - ")) {
             mensagem = mensagem.substring(9).trim();
+        } else if (mensagem.toLowerCase().startsWith("hotfix - ")) {
+            mensagem = mensagem.substring(9).trim();
+        } else if (mensagem.toLowerCase().startsWith("docs - ")) {
+            mensagem = mensagem.substring(7).trim();
+        } else if (mensagem.toLowerCase().startsWith("refactor - ")) {
+            mensagem = mensagem.substring(11).trim();
+        } else if (mensagem.toLowerCase().startsWith("merge")) {
+            mensagem = mensagem.substring(5).trim();
+        } else if (mensagem.toLowerCase().startsWith("bugfix")) {
+            mensagem = mensagem.substring(6).trim();
+        } else if (mensagem.toLowerCase().startsWith("feat/bugfix")) {
+            mensagem = mensagem.substring(11).trim();
         }
 
         // Deixa primeira letra maiúscula

@@ -14,6 +14,10 @@ import java.util.List;
 public class GitApplication {
 
     public static void main(String[] args) {
+        String language = "pt-BR"; // "en-US", "es-ES"
+        int[] version = {0, 2, 1};
+        String tag = "v0.2.1";
+
         GitLogService gitLogService = new GitLogService();
         CommitService commitService = new CommitService(new com.docs.git.service.ClassifierService());
         ReleaseNotesService releaseNotes = new ReleaseNotesService();
@@ -25,11 +29,11 @@ public class GitApplication {
         commits = commitService.classifyCommits(commits);
 
         // Release Notes tradicional
-        String releaseNotesTemplate = releaseNotes.generateReleaseNotes(commits, "beta", "0.2.0");
+        String releaseNotesTemplate = releaseNotes.generateReleaseNotes(commits, version, tag, language);
         
         System.out.println(releaseNotesTemplate+"\n");
 
         String intelligentReleaseNotes = geminiService.generateResponse(releaseNotesTemplate);
-        System.out.println(intelligentReleaseNotes);
+        //System.out.println(intelligentReleaseNotes);
     }
 }
