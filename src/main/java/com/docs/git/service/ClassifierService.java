@@ -18,7 +18,7 @@ public class ClassifierService {
             return CommitType.HOTFIX;
         } else if (lowerMsg.startsWith("docs") || lowerMsg.contains("doc")) {
             return CommitType.DOCS;
-        } else if (lowerMsg.startsWith("refactor")) {
+        } else if (lowerMsg.startsWith("refactor") || lowerMsg.contains("reaf")) {
             return CommitType.REFACTOR;
         } else if (lowerMsg.startsWith("test") || lowerMsg.contains("testing")) {
             return CommitType.TEST;

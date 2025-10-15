@@ -122,10 +122,10 @@ public class ReleaseNotesService {
             mensagem = mensagem.substring(11).trim();
         } else if (mensagem.toLowerCase().startsWith("merge")) {
             mensagem = mensagem.substring(5).trim();
-        } else if (mensagem.toLowerCase().startsWith("bugfix")) {
-            mensagem = mensagem.substring(6).trim();
         } else if (mensagem.toLowerCase().startsWith("feat/bugfix")) {
             mensagem = mensagem.substring(11).trim();
+        } else if (mensagem.toLowerCase().startsWith("reaf -")) {
+            mensagem = mensagem.substring(6).trim();
         }
 
         // Deixa primeira letra maiúscula
