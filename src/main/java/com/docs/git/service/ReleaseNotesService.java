@@ -110,22 +110,16 @@ public class ReleaseNotesService {
         // Remove "feat:", "fix:", etc.
         if (mensagem.toLowerCase().startsWith("feat - ")) {
             mensagem = mensagem.substring(7).trim();
-        } else if (mensagem.toLowerCase().startsWith("fix - ")) {
+        } else if (mensagem.toLowerCase().startsWith("fix - ") || mensagem.toLowerCase().startsWith("reaf -")) {
             mensagem = mensagem.substring(6).trim();
-        } else if (mensagem.toLowerCase().startsWith("bugfix - ")) {
-            mensagem = mensagem.substring(9).trim();
-        } else if (mensagem.toLowerCase().startsWith("hotfix - ")) {
+        } else if (mensagem.toLowerCase().startsWith("bugfix - ") || mensagem.toLowerCase().startsWith("hotfix - ")) {
             mensagem = mensagem.substring(9).trim();
         } else if (mensagem.toLowerCase().startsWith("docs - ")) {
             mensagem = mensagem.substring(7).trim();
-        } else if (mensagem.toLowerCase().startsWith("refactor - ")) {
+        } else if (mensagem.toLowerCase().startsWith("refactor - ") || mensagem.toLowerCase().startsWith("feat/bugfix")) {
             mensagem = mensagem.substring(11).trim();
         } else if (mensagem.toLowerCase().startsWith("merge")) {
             mensagem = mensagem.substring(5).trim();
-        } else if (mensagem.toLowerCase().startsWith("feat/bugfix")) {
-            mensagem = mensagem.substring(11).trim();
-        } else if (mensagem.toLowerCase().startsWith("reaf -")) {
-            mensagem = mensagem.substring(6).trim();
         }
 
         // Deixa primeira letra maiúscula

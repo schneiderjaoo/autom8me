@@ -1,6 +1,7 @@
 package com.docs.git;
 
 import java.util.Arrays;
+import java.lang.ProcessBuilder;
 
 import com.docs.git.model.Version;
 import com.docs.git.dto.GitCommitDTO;
@@ -23,38 +24,58 @@ public class GitApplication {
         int patch = 0;
 
         Version version = new Version(major, minor, patch);
-
         GitLogService gitLogService = new GitLogService();
         CommitService commitService = new CommitService(new com.docs.git.service.ClassifierService());
         ReleaseNotesService releaseNotes = new ReleaseNotesService();
         GeminiService geminiService = new GeminiService();
 
-        // captura os commits do git
-        List<GitCommitDTO> commits = gitLogService.getGitLogs();
+        try {
+            // captura os commits do git
+            List<GitCommitDTO> commits = gitLogService.getGitLogs();
 
-        commits = commitService.classifyCommits(commits);
+            commits = commitService.classifyCommits(commits);
 
-        for (GitCommitDTO commit : commits) {
-            String msg = commit.getMessage().toLowerCase();
+            for (GitCommitDTO commit : commits) {
+                String msg = commit.getMessage().toLowerCase();
 
-            if (msg.startsWith("refactor")) {
-                version.addMajor();
-            } else if (msg.startsWith("feat")) {
-                version.addMinor();
-            } else if (msg.startsWith("fix")) {
-                version.addPatch();
+                if (msg.startsWith("refactor")) {
+                    version.addMajor();
+                } else if (msg.startsWith("feat")) {
+                    version.addMinor();
+                } else if (msg.startsWith("fix")) {
+                    version.addPatch();
+                }
             }
+
+            String tag = "v" + version.toString();//"v0.2.1";
+
+            /*
+             * Está forçando pois se a tag existir vai apenas enviar a existente
+             * gerando o release notes e atualizando o commit no GitHub.
+             */
+            ProcessBuilder pbTag =
+                    new ProcessBuilder("git", "tag", "-f", tag);
+            Process processTag = pbTag.start();
+            int exitCodeTag = processTag.waitFor();
+            if (exitCodeTag == 0) {
+                ProcessBuilder pbPush =
+                        new ProcessBuilder("git", "push", "origin", tag);
+                Process processPush = pbPush.start();
+                int exitCodePush = processPush.waitFor();
+            }
+
+            int[] versionArray = version.toArray();
+            System.out.println("Versao: " + Arrays.toString(versionArray) + " - Tag: " + tag);
+            // Release Notes tradicional
+            String releaseNotesTemplate = releaseNotes.generateReleaseNotes(commits, versionArray, tag, language);
+
+            //System.out.println(releaseNotesTemplate+"\n");
+
+            String intelligentReleaseNotes = geminiService.generateResponse(releaseNotesTemplate);
+            //System.out.println(intelligentReleaseNotes);
+        } catch (Exception e){
+            System.out.println("Erro: " + e.getMessage());
+            e.printStackTrace();
         }
-
-        String tag = "v"+version.toString();//"v0.2.1";
-        int[] versionArray = version.toArray();
-        System.out.println("Versao: " + Arrays.toString(versionArray) + " - Tag: " + tag);
-        // Release Notes tradicional
-        String releaseNotesTemplate = releaseNotes.generateReleaseNotes(commits, versionArray, tag, language);
-        
-        //System.out.println(releaseNotesTemplate+"\n");
-
-        String intelligentReleaseNotes = geminiService.generateResponse(releaseNotesTemplate);
-        //System.out.println(intelligentReleaseNotes);
     }
 }
