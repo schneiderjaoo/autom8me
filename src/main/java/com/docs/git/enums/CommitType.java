@@ -9,3 +9,6 @@ public enum CommitType {
     TEST,
     RELEASE
 }
+/*
+ * Baseado no padrão do Git Flow.
+ */

@@ -4,13 +4,17 @@ import java.util.Arrays;
 import java.lang.ProcessBuilder;
 
 import com.docs.git.model.Version;
+import com.docs.git.model.ReleaseNotes;
 import com.docs.git.dto.GitCommitDTO;
 import com.docs.git.service.CommitService;
 import com.docs.git.service.GeminiService;
 import com.docs.git.service.GitLogService;
 import com.docs.git.service.ReleaseNotesService;
+import com.docs.git.repository.ReleaseNotesRepository;
 
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
 
 import java.util.List;
 
@@ -18,6 +22,10 @@ import java.util.List;
 public class GitApplication {
 
     public static void main(String[] args) {
+        // Inicializa o contexto Spring para ter acesso ao MongoDB
+        ApplicationContext context = SpringApplication.run(GitApplication.class, args);
+        ReleaseNotesRepository releaseNotesRepository = context.getBean(ReleaseNotesRepository.class);
+        
         String language = "pt-BR"; // "en-US", "es-ES"
         int major = 0;
         int minor = 0;
@@ -73,6 +81,18 @@ public class GitApplication {
 
             String intelligentReleaseNotes = geminiService.generateResponse(releaseNotesTemplate);
             //System.out.println(intelligentReleaseNotes);
+            
+            // Salva no MongoDB
+            ReleaseNotes releaseNotesDocument = new ReleaseNotes(
+                tag, 
+                version.toString(), 
+                language, 
+                releaseNotesTemplate, // Release técnica "tradicional"
+                intelligentReleaseNotes // Release inteligente
+            );
+            releaseNotesRepository.save(releaseNotesDocument);
+            System.out.println("Release notes salvo no MongoDB com sucesso! ID: " + releaseNotesDocument.getId());
+            
         } catch (Exception e){
             System.out.println("Erro: " + e.getMessage());
             e.printStackTrace();
