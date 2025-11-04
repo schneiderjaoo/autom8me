@@ -30,6 +30,6 @@ public class ClassifierService {
     }
 }
 /*
-Basicamente essa classe usa o enum CommitTyoe para classificar todas as mensagens de commit coletadas do git log
-para dessa forma filtrando dados de uma maneira que facilite a geracao de release notes.
+*Basicamente essa classe usa o enum CommitType para classificar todas as mensagens de commit coletadas do git log
+*para dessa forma filtrando dados de uma maneira que facilite a geracao de release notes.
 */
