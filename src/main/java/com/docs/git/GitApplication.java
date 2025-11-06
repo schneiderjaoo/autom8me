@@ -46,7 +46,7 @@ public class GitApplication {
             for (GitCommitDTO commit : commits) {
                 String msg = commit.getMessage().toLowerCase();
 
-                if (msg.startsWith("refactor")) {
+                if (msg.startsWith("refactor") || msg.startsWith("reaf")) {
                     version.addMajor();
                 } else if (msg.startsWith("feat")) {
                     version.addMinor();
