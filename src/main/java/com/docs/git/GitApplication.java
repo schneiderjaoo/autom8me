@@ -38,8 +38,15 @@ public class GitApplication {
         GeminiService geminiService = new GeminiService();
 
         try {
-            // captura os commits do git
-            List<GitCommitDTO> commits = gitLogService.getGitLogs();
+            // captura os commits novos desde a última tag
+            List<GitCommitDTO> commits = gitLogService.getGitLogsSince(null);
+            
+            if (commits.isEmpty()) {
+                System.out.println("Nenhum commit novo encontrado desde a última tag. Nada para processar.");
+                return;
+            }
+            
+            System.out.println("Encontrados " + commits.size() + " commit(s) novo(s) para processar.");
 
             commits = commitService.classifyCommits(commits);
 
