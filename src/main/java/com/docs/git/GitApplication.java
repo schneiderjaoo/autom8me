@@ -15,6 +15,7 @@ import com.docs.git.repository.ReleaseNotesRepository;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.List;
 
@@ -38,8 +39,15 @@ public class GitApplication {
         GeminiService geminiService = new GeminiService();
 
         try {
-            // captura os commits do git
-            List<GitCommitDTO> commits = gitLogService.getGitLogs();
+            // captura os commits novos desde a última tag
+            List<GitCommitDTO> commits = gitLogService.getGitLogsSince(null);
+            
+            if (commits.isEmpty()) {
+                System.out.println("Nenhum commit novo encontrado desde a última tag. Nada para processar.");
+                return;
+            }
+            
+            System.out.println("Encontrados " + commits.size() + " commit(s) novo(s) para processar.");
 
             commits = commitService.classifyCommits(commits);
 
@@ -96,6 +104,11 @@ public class GitApplication {
         } catch (Exception e){
             System.out.println("Erro: " + e.getMessage());
             e.printStackTrace();
+        } finally{ 
+            // Adiciona o fechamento do contexto Spring para o jar não ficar rodando infinitamente
+            ((ConfigurableApplicationContext) context).close();
+            System.exit(0);
         }
+
     }
 }

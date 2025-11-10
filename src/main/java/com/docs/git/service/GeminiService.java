@@ -37,7 +37,7 @@ public class GeminiService {
 
     public String generateResponse(String prompt) {
         if (geminiKey == null || geminiKey.trim().isEmpty()) {
-            return "API Key não configurada! Verifique o arquivo application.properties";
+            return "API Key nï¿½o configurada! Verifique o arquivo application.properties";
         }
 
         String promptEng = engPrompt(prompt, "pt-BR");
@@ -47,8 +47,9 @@ public class GeminiService {
         HttpHeaders head = new HttpHeaders();
         head.setContentType(MediaType.APPLICATION_JSON);
 
-        // Usar query parameter (mais compatível)
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + geminiKey;
+        // Usar query parameter (mais compatï¿½vel)
+        //String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + geminiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey;
 
         // Construir JSON manualmente para evitar problemas de escape
         String requestBody = "{\n" +
@@ -127,15 +128,15 @@ public class GeminiService {
     private String engPrompt(String baseReleaseNotes, String idioma) {
         return String.format("""
             Gere uma release notes detalhada em %s a partir da release notes que vou estar enviando a baixo,
-            precisa estar evitando as mensagens genéricas como exemplo: ajustes, correções, melhorias, etc.
-            Preciso que a release notes esteja em português, e que esteja dividida por tópicos como: 
-            Novas Funcionalidades, Correções de Bugs, Melhorias, Atualizações e que cada tópico tenha uma breve 
-            descrição do que foi feito, mas lembrando que isso vai ser disponibilizado para o cliente assim não 
-            podendo ser algo muito técnico, também devemos lembrar que o FIX, FEATURE, as categorias que utilizamos 
-            não vão poder ser mantidas, já que será disponibilizado para o usuário final devemos remover esses caras, 
-            já que pode causar deixar o usuário final confuso exemplo:
-            - FEaT - Criado nova pipeline para validar todos os novos códigos. deve virar
-            - Criado nova pipeline para validar todos os novos códigos.
+            precisa estar evitando as mensagens genï¿½ricas como exemplo: ajustes, correï¿½ï¿½es, melhorias, etc.
+            Preciso que a release notes esteja em portuguï¿½s, e que esteja dividida por tï¿½picos como: 
+            Novas Funcionalidades, Correï¿½ï¿½es de Bugs, Melhorias, Atualizaï¿½ï¿½es e que cada tï¿½pico tenha uma breve 
+            descriï¿½ï¿½o do que foi feito, mas lembrando que isso vai ser disponibilizado para o cliente assim nï¿½o 
+            podendo ser algo muito tï¿½cnico, tambï¿½m devemos lembrar que o FIX, FEATURE, as categorias que utilizamos 
+            nï¿½o vï¿½o poder ser mantidas, jï¿½ que serï¿½ disponibilizado para o usuï¿½rio final devemos remover esses caras, 
+            jï¿½ que pode causar deixar o usuï¿½rio final confuso exemplo:
+            - FEaT - Criado nova pipeline para validar todos os novos cï¿½digos. deve virar
+            - Criado nova pipeline para validar todos os novos cï¿½digos.
             Exemplo:
             %s
             
