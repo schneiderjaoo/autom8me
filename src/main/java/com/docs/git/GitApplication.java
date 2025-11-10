@@ -15,6 +15,7 @@ import com.docs.git.repository.ReleaseNotesRepository;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.List;
 
@@ -103,6 +104,11 @@ public class GitApplication {
         } catch (Exception e){
             System.out.println("Erro: " + e.getMessage());
             e.printStackTrace();
+        } finally{ 
+            // Adiciona o fechamento do contexto Spring para o jar não ficar rodando infinitamente
+            ((ConfigurableApplicationContext) context).close();
+            System.exit(0);
         }
+
     }
 }
