@@ -1,7 +1,16 @@
 package com.docs.git;
 
-import java.util.Arrays;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.lang.ProcessBuilder;
+import java.util.List;
 
 import com.docs.git.model.Version;
 import com.docs.git.model.ReleaseNotes;
@@ -17,17 +26,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.util.List;
-
 @SpringBootApplication
 public class GitApplication {
 
     public static void main(String[] args) {
-        // Inicializa o contexto Spring para ter acesso ao MongoDB
         ApplicationContext context = SpringApplication.run(GitApplication.class, args);
         ReleaseNotesRepository releaseNotesRepository = context.getBean(ReleaseNotesRepository.class);
-        
-        String language = "pt-BR"; // "en-US", "es-ES"
+
+        String language = "pt-BR";
         int major = 0;
         int minor = 0;
         int patch = 0;
@@ -38,16 +44,19 @@ public class GitApplication {
         ReleaseNotesService releaseNotes = new ReleaseNotesService();
         GeminiService geminiService = new GeminiService();
 
+        String repoPath = "/Users/user/Documents/GitClones/BookSys";
+        String relativeDir = "books/release-notes/Diário de Mudanças";
+        String targetRepoUrl = "https://github.com/schneiderjaoo/bookSys.git";
+        String originalUrl = null;
+
         try {
-            // captura os commits novos desde a última tag
+            System.out.println("Collecting repository changes to generate release notes...");
             List<GitCommitDTO> commits = gitLogService.getGitLogsSince(null);
-            
+
             if (commits.isEmpty()) {
-                System.out.println("Nenhum commit novo encontrado desde a última tag. Nada para processar.");
+                System.out.println("No commits found since the last tag. Skipping release notes generation.");
                 return;
             }
-            
-            System.out.println("Encontrados " + commits.size() + " commit(s) novo(s) para processar.");
 
             commits = commitService.classifyCommits(commits);
 
@@ -63,52 +72,142 @@ public class GitApplication {
                 }
             }
 
-            String tag = "v" + version.toString();//"v0.2.1";
+            String tag = "v" + version.toString();
 
-            /*
-             * Está forçando pois se a tag existir vai apenas enviar a existente
-             * gerando o release notes e atualizando o commit no GitHub.
-             */
             ProcessBuilder pbTag =
                     new ProcessBuilder("git", "tag", "-f", tag);
             Process processTag = pbTag.start();
             int exitCodeTag = processTag.waitFor();
-            if (exitCodeTag == 0) {
-                ProcessBuilder pbPush =
-                        new ProcessBuilder("git", "push", "origin", tag);
-                Process processPush = pbPush.start();
-                int exitCodePush = processPush.waitFor();
+            if (exitCodeTag != 0) {
+                String stderr = readStream(processTag.getErrorStream());
+                throw new RuntimeException("Erro ao criar tag local: " + stderr);
+            }
+
+            ProcessBuilder pbPush =
+                    new ProcessBuilder("git", "push", "origin", tag);
+            Process processPush = pbPush.start();
+            int exitCodePush = processPush.waitFor();
+            if (exitCodePush != 0) {
+                String stderr = readStream(processPush.getErrorStream());
+                throw new RuntimeException("Erro ao enviar tag para o repositório remoto: " + stderr);
             }
 
             int[] versionArray = version.toArray();
-            System.out.println("Versao: " + Arrays.toString(versionArray) + " - Tag: " + tag);
-            // Release Notes tradicional
             String releaseNotesTemplate = releaseNotes.generateReleaseNotes(commits, versionArray, tag, language);
-
-            //System.out.println(releaseNotesTemplate+"\n");
-
             String intelligentReleaseNotes = geminiService.generateResponse(releaseNotesTemplate);
-            //System.out.println(intelligentReleaseNotes);
-            
-            // Salva no MongoDB
+
             ReleaseNotes releaseNotesDocument = new ReleaseNotes(
-                tag, 
-                version.toString(), 
-                language, 
-                releaseNotesTemplate, // Release técnica "tradicional"
-                intelligentReleaseNotes // Release inteligente
+                    tag,
+                    version.toString(),
+                    language,
+                    releaseNotesTemplate,
+                    intelligentReleaseNotes
             );
             releaseNotesRepository.save(releaseNotesDocument);
-            System.out.println("Release notes salvo no MongoDB com sucesso! ID: " + releaseNotesDocument.getId());
-            
+
+            originalUrl = getCurrentRemoteUrl(repoPath);
+            if (originalUrl == null || originalUrl.isBlank()) {
+                throw new IllegalStateException("Could not determine original remote URL for repository at " + repoPath);
+            }
+
+            File baseDir = new File(new File(repoPath), relativeDir);
+            if (!baseDir.exists()) {
+                baseDir.mkdirs();
+            }
+
+            File releaseFile = new File(baseDir, "diario-mudancas.md");
+            writeFile(releaseFile, releaseNotesTemplate);
+
+            File intelligentFile = new File(baseDir, "diario-inteligente.md");
+            writeFile(intelligentFile, intelligentReleaseNotes);
+
+            System.out.println("Switching remote to target repository " + targetRepoUrl);
+            setRemoteUrl(repoPath, targetRepoUrl);
+
+            runCommand(repoPath, "git", "fetch", "origin");
+            runCommand(repoPath, "git", "checkout", "main");
+            runCommand(repoPath, "git", "pull", "--rebase", "origin", "main");
+
+            System.out.println("Committing release notes to target repository...");
+            runCommand(repoPath, "git", "add", ".");
+            runCommand(repoPath, "git", "commit", "-m", "chore: update diário de mudanças " + tag);
+            runCommand(repoPath, "git", "tag", "-f", tag);
+            runCommand(repoPath, "git", "push", "origin", "HEAD:main", "--force");
+            runCommand(repoPath, "git", "push", "origin", tag, "--force");
+
         } catch (Exception e){
-            System.out.println("Erro: " + e.getMessage());
             e.printStackTrace();
-        } finally{ 
-            // Adiciona o fechamento do contexto Spring para o jar não ficar rodando infinitamente
+        } finally{
+            if (originalUrl != null && !originalUrl.isBlank()) {
+                try {
+                    System.out.println("Restoring original remote URL " + originalUrl);
+                    setRemoteUrl("/Users/user/Documents/GitClones/BookSys", originalUrl);
+                } catch (Exception restoreException) {
+                    restoreException.printStackTrace();
+                }
+            }
+
             ((ConfigurableApplicationContext) context).close();
             System.exit(0);
         }
 
+    }
+
+    private static void runCommand(String repoPath, String... command) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.directory(new File(repoPath));
+        Process p = pb.start();
+        String stdout = readStream(p.getInputStream());
+        String stderr = readStream(p.getErrorStream());
+        int exit = p.waitFor();
+        if (exit != 0) {
+            String message = "Erro ao executar comando: " + String.join(" ", command);
+            if (!stdout.isBlank()) {
+                message += System.lineSeparator() + "STDOUT: " + stdout;
+            }
+            if (!stderr.isBlank()) {
+                message += System.lineSeparator() + "STDERR: " + stderr;
+            }
+            throw new RuntimeException(message);
+        }
+    }
+
+    private static void writeFile(File file, String content) throws IOException {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
+            writer.write(content);
+        }
+    }
+
+    private static String getCurrentRemoteUrl(String repoPath) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder("git", "remote", "get-url", "origin");
+        pb.directory(new File(repoPath));
+        Process p = pb.start();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+            String url = reader.readLine();
+            int exit = p.waitFor();
+            if (exit != 0) {
+                String error = readStream(p.getErrorStream());
+                throw new RuntimeException("Erro ao obter remote origin: " + error);
+            }
+            return url;
+        }
+    }
+
+    private static void setRemoteUrl(String repoPath, String newUrl) throws Exception {
+        runCommand(repoPath, "git", "remote", "set-url", "origin", newUrl);
+    }
+
+    private static String readStream(InputStream stream) throws IOException {
+        StringBuilder builder = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (builder.length() > 0) {
+                    builder.append(System.lineSeparator());
+                }
+                builder.append(line);
+            }
+        }
+        return builder.toString();
     }
 }
