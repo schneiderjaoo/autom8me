@@ -26,6 +26,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 
+/*
+* @author schneiderjaoo
+* @version olha a ultima tag do repositório git
+*/
+
 @SpringBootApplication
 public class GitApplication {
 
