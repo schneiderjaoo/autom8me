@@ -25,6 +25,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.env.Environment;
 
 /*
 * @author schneiderjaoo
@@ -37,43 +38,70 @@ public class GitApplication {
     public static void main(String[] args) {
         ApplicationContext context = SpringApplication.run(GitApplication.class, args);
         ReleaseNotesRepository releaseNotesRepository = context.getBean(ReleaseNotesRepository.class);
+        Environment env = context.getEnvironment();
 
         String language = "pt-BR";
-        int major = 0;
-        int minor = 0;
-        int patch = 0;
-
-        Version version = new Version(major, minor, patch);
         GitLogService gitLogService = new GitLogService();
         CommitService commitService = new CommitService(new com.docs.git.service.ClassifierService());
         ReleaseNotesService releaseNotes = new ReleaseNotesService();
         GeminiService geminiService = new GeminiService();
 
-        String repoPath = "/Users/user/Documents/GitClones/BookSys";
-        String relativeDir = "books/release-notes/Diário de Mudanças";
-        String targetRepoUrl = "https://github.com/schneiderjaoo/bookSys.git";
+        // Lê configurações do application.properties
+        String repoPath = env.getProperty("app.repo.booksys.path", "/Users/user/Documents/GitClones/BookSys");
+        String relativeDir = env.getProperty("app.repo.booksys.release-notes-dir", "books/release-notes/Diário de Mudanças");
+        String targetRepoUrl = env.getProperty("app.repo.booksys.url", "https://github.com/schneiderjaoo/bookSys.git");
         String originalUrl = null;
 
         try {
-            System.out.println("Collecting repository changes to generate release notes...");
-            List<GitCommitDTO> commits = gitLogService.getGitLogsSince(null);
-
-            if (commits.isEmpty()) {
-                System.out.println("No commits found since the last tag. Skipping release notes generation.");
-                return;
+            /*
+            * Pega a última tag do repositório
+            * Analisa a tag para extrair a versão sem o "v" inicial
+            * Se não houver tag, começa em 0.0.0
+            */
+            String lastTag = gitLogService.getLastTag();
+            Version version;
+            if (lastTag != null && !lastTag.isBlank()) {
+                String cleanTag = lastTag.trim();
+                if (cleanTag.startsWith("v") || cleanTag.startsWith("V")) {
+                    cleanTag = cleanTag.substring(1);
+                }
+                String[] parts = cleanTag.split("\\.");
+                int major = parts.length > 0 ? parseNumber(parts[0]) : 0;
+                int minor = parts.length > 1 ? parseNumber(parts[1]) : 0;
+                int patch = parts.length > 2 ? parseNumber(parts[2]) : 0;
+                version = new Version(major, minor, patch);
+            } else {
+                // Caso nao ache nenhuma tag, inicia em 0.0.0
+                version = new Version(0, 0, 0);
             }
 
+            List<GitCommitDTO> commits = gitLogService.getGitLogsSince(lastTag);
+
+            if (commits.isEmpty()) {
+                System.out.println("Sem commits versao vai ser v0.0.1");
+                version.addPatch();
+            }
+            // Classifica os commits
             commits = commitService.classifyCommits(commits);
 
-            for (GitCommitDTO commit : commits) {
-                String msg = commit.getMessage().toLowerCase();
+            /*
+            * SemVer rules:
+            * Major: refactor, reaf
+            * Minor: feat
+            * Patch: fix
+            * Só vai gerar versão se encontrar algum desses tipos de commit
+            */
+            if (!commits.isEmpty()) {
+                for (GitCommitDTO commit : commits) {
+                    String msg = commit.getMessage().toLowerCase();
 
-                if (msg.startsWith("refactor") || msg.startsWith("reaf")) {
-                    version.addMajor();
-                } else if (msg.startsWith("feat")) {
-                    version.addMinor();
-                } else if (msg.startsWith("fix")) {
-                    version.addPatch();
+                    if (msg.startsWith("refactor") || msg.startsWith("reaf")) {
+                        version.addMajor();
+                    } else if (msg.startsWith("feat")) {
+                        version.addMinor();
+                    } else if (msg.startsWith("fix")) {
+                        version.addPatch();
+                    }
                 }
             }
 
@@ -89,7 +117,7 @@ public class GitApplication {
             }
 
             ProcessBuilder pbPush =
-                    new ProcessBuilder("git", "push", "origin", tag);
+                    new ProcessBuilder("git", "push", "origin", tag, "--force");
             Process processPush = pbPush.start();
             int exitCodePush = processPush.waitFor();
             if (exitCodePush != 0) {
@@ -108,6 +136,7 @@ public class GitApplication {
                     releaseNotesTemplate,
                     intelligentReleaseNotes
             );
+
             releaseNotesRepository.save(releaseNotesDocument);
 
             originalUrl = getCurrentRemoteUrl(repoPath);
@@ -115,38 +144,57 @@ public class GitApplication {
                 throw new IllegalStateException("Could not determine original remote URL for repository at " + repoPath);
             }
 
-            File baseDir = new File(new File(repoPath), relativeDir);
-            if (!baseDir.exists()) {
-                baseDir.mkdirs();
-            }
-
-            File releaseFile = new File(baseDir, "diario-mudancas.md");
-            writeFile(releaseFile, releaseNotesTemplate);
-
-            File intelligentFile = new File(baseDir, "diario-inteligente.md");
-            writeFile(intelligentFile, intelligentReleaseNotes);
-
             System.out.println("Switching remote to target repository " + targetRepoUrl);
             setRemoteUrl(repoPath, targetRepoUrl);
 
             runCommand(repoPath, "git", "fetch", "origin");
             runCommand(repoPath, "git", "checkout", "main");
+            
+            // Limpar working tree antes do pull
+            try {
+                runCommand(repoPath, "git", "reset", "--hard", "HEAD");
+            } catch (Exception e) {
+                // Ignora se não houver nada para resetar
+            }
+            try {
+                runCommand(repoPath, "git", "clean", "-fd");
+            } catch (Exception e) {
+                // Ignora se não houver nada para limpar
+            }
+            
             runCommand(repoPath, "git", "pull", "--rebase", "origin", "main");
 
-            System.out.println("Committing release notes to target repository...");
-            runCommand(repoPath, "git", "add", ".");
-            runCommand(repoPath, "git", "commit", "-m", "chore: update diário de mudanças " + tag);
-            runCommand(repoPath, "git", "tag", "-f", tag);
-            runCommand(repoPath, "git", "push", "origin", "HEAD:main", "--force");
-            runCommand(repoPath, "git", "push", "origin", tag, "--force");
+            // Criar arquivos DEPOIS do pull para não serem removidos pelo reset
+            File baseDir = new File(new File(repoPath), relativeDir);
+            if (!baseDir.exists()) {
+                baseDir.mkdirs();
+            }
+
+            String releaseFileName = tag + ".md";
+            String intelligentFileName = "Ge " + tag + ".md";
+
+            File releaseFile = new File(baseDir, releaseFileName);
+            writeFile(releaseFile, releaseNotesTemplate);
+
+            File intelligentFile = new File(baseDir, intelligentFileName);
+            writeFile(intelligentFile, intelligentReleaseNotes);
+
+            String releaseRelativePath = relativeDir + "/" + releaseFileName;
+            String intelligentRelativePath = relativeDir + "/" + intelligentFileName;
+
+            // Para adicionar os arquivos de release notes no outro repositorio
+            runCommand(repoPath, "git", "add", releaseRelativePath, intelligentRelativePath);
+
+            commitChanges(repoPath, "update diário de mudanças " + tag);
+            runCommand(repoPath, "git", "push", "origin", "HEAD:main");
 
         } catch (Exception e){
             e.printStackTrace();
         } finally{
             if (originalUrl != null && !originalUrl.isBlank()) {
                 try {
-                    System.out.println("Restoring original remote URL " + originalUrl);
-                    setRemoteUrl("/Users/user/Documents/GitClones/BookSys", originalUrl);
+                    System.out.println("Voltando o remote " + originalUrl);
+                    setRemoteUrl(repoPath, originalUrl);
                 } catch (Exception restoreException) {
                     restoreException.printStackTrace();
                 }
@@ -200,6 +248,60 @@ public class GitApplication {
 
     private static void setRemoteUrl(String repoPath, String newUrl) throws Exception {
         runCommand(repoPath, "git", "remote", "set-url", "origin", newUrl);
+    }
+
+    private static void commitChanges(String repoPath, String message) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder("git", "commit", "-m", message);
+        pb.directory(new File(repoPath));
+        Process p = pb.start();
+        String stdout = readStream(p.getInputStream());
+        String stderr = readStream(p.getErrorStream());
+        int exit = p.waitFor();
+
+        if (exit == 0) {
+            return;
+        }
+
+        String combinedOutput = (stdout + " " + stderr).toLowerCase();
+        if (combinedOutput.contains("nothing to commit")) {
+            // Força commit mesmo sem mudanças
+            System.out.println("Nenhuma mudança detectada. Criando commit vazio...");
+            ProcessBuilder pbEmpty = new ProcessBuilder("git", "commit", "--allow-empty", "-m", message);
+            pbEmpty.directory(new File(repoPath));
+            Process pEmpty = pbEmpty.start();
+            String stdoutEmpty = readStream(pEmpty.getInputStream());
+            String stderrEmpty = readStream(pEmpty.getErrorStream());
+            int exitEmpty = pEmpty.waitFor();
+            
+            if (exitEmpty != 0) {
+                StringBuilder messageBuilder = new StringBuilder("Erro ao executar git commit --allow-empty");
+                if (!stdoutEmpty.isBlank()) {
+                    messageBuilder.append(System.lineSeparator()).append("STDOUT: ").append(stdoutEmpty);
+                }
+                if (!stderrEmpty.isBlank()) {
+                    messageBuilder.append(System.lineSeparator()).append("STDERR: ").append(stderrEmpty);
+                }
+                throw new RuntimeException(messageBuilder.toString());
+            }
+            return;
+        }
+
+        StringBuilder messageBuilder = new StringBuilder("Erro ao executar git commit");
+        if (!stdout.isBlank()) {
+            messageBuilder.append(System.lineSeparator()).append("STDOUT: ").append(stdout);
+        }
+        if (!stderr.isBlank()) {
+            messageBuilder.append(System.lineSeparator()).append("STDERR: ").append(stderr);
+        }
+        throw new RuntimeException(messageBuilder.toString());
+    }
+
+    private static int parseNumber(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private static String readStream(InputStream stream) throws IOException {

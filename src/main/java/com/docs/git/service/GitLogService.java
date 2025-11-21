@@ -73,6 +73,10 @@ public class GitLogService {
      * Busca a última tag do repositório
      * Retorna null se não encontrar
      */
+    public String getLastTag() {
+        return buscarUltimaTag();
+    }
+
     private String buscarUltimaTag() {
         try {
             Process process = new ProcessBuilder("git", "describe", "--tags", "--abbrev=0").start();
