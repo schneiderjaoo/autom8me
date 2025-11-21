@@ -12,6 +12,9 @@ on:
 jobs:
   generate-release-notes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Permite criar tags e fazer push
+      pull-requests: read
     
     steps:
       - name: Checkout code
@@ -33,17 +36,52 @@ jobs:
           cache: maven
 
       - name: Build with Maven
-        run: mvn clean package
+        run: mvn clean package -DskipTests
+
+      - name: Preparar repositório BookSys
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p ${{ github.workspace }}/repos
+          cd ${{ github.workspace }}/repos
+          
+          if [ ! -d "BookSys" ]; then
+            echo "Clonando repositório BookSys..."
+            # Usa token para clonar (se repositório privado)
+            git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/schneiderjaoo/bookSys.git || \
+            git clone https://github.com/schneiderjaoo/bookSys.git
+          else
+            echo "Repositório BookSys já existe. Atualizando..."
+            cd BookSys
+            git fetch origin
+            git checkout main || git checkout master
+            git pull origin main || git pull origin master
+          fi
+          
+          # Configura credenciais para push
+          cd BookSys
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          
+          # Configura remote com token para permitir push
+          git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/schneiderjaoo/bookSys.git
 
       - name: Run Release Notes Generator
         env:
+          # Configurações do MongoDB e Gemini
           SPRING_DATA_MONGODB_URI: ${{ secrets.MONGODB_URI }}
           SPRING_DATA_MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          
+          # Configurações do repositório BookSys (IMPORTANTE!)
+          APP_REPO_BOOKSYS_PATH: ${{ github.workspace }}/repos/BookSys
+          APP_REPO_BOOKSYS_RELEASE_NOTES_DIR: 'books/release-notes/Diário de Mudanças'
+          APP_REPO_BOOKSYS_URL: 'https://github.com/schneiderjaoo/bookSys.git'
         run: |
           java -jar target/git-0.0.1-SNAPSHOT.jar
 
-      - name: Push tags if created
+      - name: Verificar arquivos criados
         run: |
-          git push origin --tags || echo "Nenhuma tag nova para fazer push"
+          echo "Verificando arquivos de release notes criados..."
+          ls -la ${{ github.workspace }}/repos/BookSys/books/release-notes/Diário\ de\ Mudanças/*.md | tail -5 || echo "Nenhum arquivo encontrado"
 
