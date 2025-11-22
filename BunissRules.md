@@ -6,7 +6,7 @@
 3. Calcular a nova versão semântica:
    - `refactor`/breaking → incrementa **major**  
    - `feat` → incrementa **minor**  
-   - `fix` ou ausência de commits novos → incrementa **patch**   
+   - `fix` ou ausência de commits novos → incrementa **patch**         
 4. Gerar dois conteúdos:
    - `releaseNotesTemplate` (texto técnico)  
    - `intelligentReleaseNotes` (texto “inteligente” via Gemini)  
