@@ -38,33 +38,55 @@ jobs:
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
-      - name: Preparar repositório BookSys
+      - name: Preparar repositório BookSys (Privado)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Usa BOOKSYS_TOKEN se disponível, senão usa GITHUB_TOKEN
+          # IMPORTANTE: Se BookSys for de outro usuário/org, crie um PAT e configure como BOOKSYS_TOKEN
+          BOOKSYS_TOKEN: ${{ secrets.BOOKSYS_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p ${{ github.workspace }}/repos
           cd ${{ github.workspace }}/repos
           
+          # Valida se o token está disponível
+          if [ -z "${BOOKSYS_TOKEN}" ]; then
+            echo "❌ ERRO: Token não configurado para acessar repositório privado BookSys"
+            echo "Configure um secret 'BOOKSYS_TOKEN' ou 'GITHUB_TOKEN' com permissão de acesso ao repositório"
+            exit 1
+          fi
+          
           if [ ! -d "BookSys" ]; then
-            echo "Clonando repositório BookSys..."
-            # Usa token para clonar (se repositório privado)
-            git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/schneiderjaoo/bookSys.git || \
-            git clone https://github.com/schneiderjaoo/bookSys.git
+            echo "Clonando repositório BookSys (privado)..."
+            # Clona usando token (repositório privado)
+            git clone https://x-access-token:${BOOKSYS_TOKEN}@github.com/schneiderjaoo/bookSys.git BookSys || {
+              echo "❌ Erro: Não foi possível clonar o repositório BookSys"
+              echo ""
+              echo "Possíveis causas:"
+              echo "  1. O token não tem permissão para acessar o repositório privado"
+              echo "  2. O repositório não existe ou está inacessível"
+              echo ""
+              echo "Solução:"
+              echo "  - Crie um Personal Access Token (PAT) com escopo 'repo'"
+              echo "  - Adicione como secret 'BOOKSYS_TOKEN' no GitHub"
+              echo "  - Verifique se o token tem acesso ao repositório schneiderjaoo/bookSys"
+              exit 1
+            }
+            echo "✅ Repositório BookSys clonado com sucesso"
           else
             echo "Repositório BookSys já existe. Atualizando..."
             cd BookSys
+            git remote set-url origin https://x-access-token:${BOOKSYS_TOKEN}@github.com/schneiderjaoo/bookSys.git
             git fetch origin
             git checkout main || git checkout master
             git pull origin main || git pull origin master
           fi
           
-          # Configura credenciais para push
-          cd BookSys
+          # Configura credenciais para push no repositório BookSys
+          cd ${{ github.workspace }}/repos/BookSys
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           
-          # Configura remote com token para permitir push
-          git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/schneiderjaoo/bookSys.git
+          # Garante que o remote está configurado com token para push
+          git remote set-url origin https://x-access-token:${BOOKSYS_TOKEN}@github.com/schneiderjaoo/bookSys.git
 
       - name: Validar e preparar configuração MongoDB
         run: |
