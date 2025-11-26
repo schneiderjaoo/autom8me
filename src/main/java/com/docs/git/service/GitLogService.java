@@ -12,10 +12,13 @@ import java.util.List;
 public class GitLogService {
 
     /**
-     * Pega commits NOVOS desde a última tag
-     * Se não tiver tag, pega dos últimos 30 dias(do mês)
+     * Busca commits desde a última tag
+     * 
+     * Se não tiver tag OU não tiver commits desde a tag:
+     * - Se daysFallback = 0: busca TODOS os commits
+     * - Se daysFallback > 0: busca commits dos últimos X dias
      */
-    public List<GitCommitDTO> getGitLogsSince(String ultimaTag) {
+    public List<GitCommitDTO> getGitLogsSince(String ultimaTag, int daysFallback) {
         List<GitCommitDTO> commits = new ArrayList<>();
 
         try {
@@ -33,14 +36,23 @@ public class GitLogService {
                     "--pretty=format:%H|%s|%cd", "--date=iso"
                 );
             } else {
-                // Não tem tag? Pega últimos 30 dias
-                processBuilder = new ProcessBuilder(
-                    "git", "log", "--since=30 days ago",
-                    "--pretty=format:%H|%s|%cd", "--date=iso"
-                );
+                // Não tem tag? Busca todos ou pelos dias configurados
+                if (daysFallback <= 0) {
+                    // daysFallback = 0 significa buscar TODOS os commits
+                    processBuilder = new ProcessBuilder(
+                        "git", "log",
+                        "--pretty=format:%H|%s|%cd", "--date=iso"
+                    );
+                } else {
+                    // Busca commits dos últimos X dias
+                    processBuilder = new ProcessBuilder(
+                        "git", "log", "--since=" + daysFallback + " days ago",
+                        "--pretty=format:%H|%s|%cd", "--date=iso"
+                    );
+                }
             }
             
-            // Executa e lê a saída
+            // Executa o comando Git e lê os commits
             Process process = processBuilder.start();
             BufferedReader reader = new BufferedReader(
                 new InputStreamReader(process.getInputStream())
@@ -53,15 +65,54 @@ public class GitLogService {
                 String[] partes = line.split("\\|", 3);
                 if (partes.length >= 2) {
                     commits.add(new GitCommitDTO(
-                        partes[0],           // sha
-                        partes[1],           // mensagem
-                        null,               // type
-                        partes.length >= 3 ? partes[2] : ""  // data
+                        partes[0],           // SHA do commit
+                        partes[1],           // Mensagem do commit
+                        null,                // Tipo será classificado depois
+                        partes.length >= 3 ? partes[2] : ""  // Data do commit
                     ));
                 }
             }
 
             process.waitFor();
+            
+            // Se não encontrou commits desde a tag, busca todos ou pelos dias configurados
+            if (commits.isEmpty() && tagParaUsar != null) {
+                if (daysFallback <= 0) {
+                    // Busca TODOS os commits
+                    processBuilder = new ProcessBuilder(
+                        "git", "log",
+                        "--pretty=format:%H|%s|%cd", "--date=iso"
+                    );
+                } else {
+                    // Busca pelos dias configurados
+                    processBuilder = new ProcessBuilder(
+                        "git", "log", "--since=" + daysFallback + " days ago",
+                        "--pretty=format:%H|%s|%cd", "--date=iso"
+                    );
+                }
+                
+                Process processFallback = processBuilder.start();
+                BufferedReader readerFallback = new BufferedReader(
+                    new InputStreamReader(processFallback.getInputStream())
+                );
+                
+                String lineFallback;
+                while ((lineFallback = readerFallback.readLine()) != null) {
+                    if (lineFallback.trim().isEmpty()) continue;
+                    
+                    String[] partes = lineFallback.split("\\|", 3);
+                    if (partes.length >= 2) {
+                        commits.add(new GitCommitDTO(
+                            partes[0],
+                            partes[1],
+                            null,
+                            partes.length >= 3 ? partes[2] : ""
+                        ));
+                    }
+                }
+                
+                processFallback.waitFor();
+            }
         } catch (Exception e) {
             throw new RuntimeException("Erro ao executar git log: " + e.getMessage(), e);
         }
