@@ -88,56 +88,15 @@ jobs:
           # Garante que o remote está configurado com token para push
           git remote set-url origin https://x-access-token:${BOOKSYS_TOKEN}@github.com/schneiderjaoo/bookSys.git
 
-      - name: Validar e preparar configuração MongoDB
-        run: |
-          if [ -z "${{ secrets.MONGODB_URI }}" ]; then
-            echo "❌ ERRO: MONGODB_URI não está configurado nos secrets do GitHub"
-            echo "Configure em: Settings > Secrets and variables > Actions"
-            exit 1
-          fi
-          
-          # Verifica se a URI começa com mongodb:// ou mongodb+srv://
-          MONGODB_URI="${{ secrets.MONGODB_URI }}"
-          if [[ ! "$MONGODB_URI" =~ ^mongodb ]] && [[ ! "$MONGODB_URI" =~ ^mongodb\+srv ]]; then
-            echo "❌ ERRO: MONGODB_URI inválido. Deve começar com 'mongodb://' ou 'mongodb+srv://'"
-            echo "URI atual: ${MONGODB_URI:0:50}..."
-            exit 1
-          fi
-          
-          # Verifica se o nome do banco está na URI ou será fornecido separadamente
-          MONGODB_DB="${{ secrets.MONGODB_DATABASE }}"
-          if [ -z "$MONGODB_DB" ]; then
-            echo "⚠️  AVISO: MONGODB_DATABASE não configurado. Usando 'Cluster0' como padrão."
-            echo "MONGODB_DATABASE=Cluster0" >> $GITHUB_ENV
-          else
-            echo "MONGODB_DATABASE=$MONGODB_DB" >> $GITHUB_ENV
-          fi
-          
-          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
-            echo "⚠️  AVISO: GEMINI_API_KEY não está configurado. Release notes inteligentes podem falhar."
-          fi
-          
-          echo "✅ Secrets validados"
-
       - name: Run Release Notes Generator
         env:
-          # MongoDB - A URI deve começar com mongodb:// ou mongodb+srv://
-          # IMPORTANTE: Se a URI não incluir o nome do banco, use MONGODB_DATABASE separadamente
-          # Formato completo: mongodb+srv://user:pass@cluster.mongodb.net/DATABASE_NAME?appName=...
-          SPRING_DATA_MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          SPRING_DATA_MONGODB_DATABASE: ${{ env.MONGODB_DATABASE || secrets.MONGODB_DATABASE || 'Cluster0' }}
-          
-          # Gemini API (opcional, mas recomendado)
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          
-          # Configurações do repositório BookSys
+          # Apenas sobrescreve o caminho do BookSys (específico da pipeline)
+          # Todas as outras configurações vêm do application.properties
           APP_REPO_BOOKSYS_PATH: ${{ github.workspace }}/repos/BookSys
-          APP_REPO_BOOKSYS_RELEASE_NOTES_DIR: 'books/release-notes/Diário de Mudanças'
-          APP_REPO_BOOKSYS_URL: 'https://github.com/schneiderjaoo/bookSys.git'
         run: |
+          echo "=========================================="
           echo "Iniciando geração de release notes..."
-          echo "MongoDB URI configurada: ${SPRING_DATA_MONGODB_URI:0:50}..."
-          echo "MongoDB Database: $SPRING_DATA_MONGODB_DATABASE"
+          echo "=========================================="
           java -jar target/git-0.0.1-SNAPSHOT.jar
 
       - name: Verificar arquivos criados
