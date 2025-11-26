@@ -90,9 +90,10 @@ jobs:
 
       - name: Run Release Notes Generator
         env:
-          # Apenas sobrescreve o caminho do BookSys (específico da pipeline)
-          # Todas as outras configurações vêm do application.properties
+          # Caminho do BookSys (específico da pipeline)
           APP_REPO_BOOKSYS_PATH: ${{ github.workspace }}/repos/BookSys
+          # Chave da API Gemini (obrigatória via secret)
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "=========================================="
           echo "Iniciando geração de release notes..."

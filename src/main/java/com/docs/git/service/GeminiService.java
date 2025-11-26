@@ -1,6 +1,5 @@
 package com.docs.git.service;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,16 +27,24 @@ public class GeminiService {
         try {
             Properties props = new Properties();
             InputStream input = getClass().getClassLoader().getResourceAsStream("application.properties");
-            props.load(input);
-            geminiKey = props.getProperty("gemini.api.key");
+            if (input != null) {
+                props.load(input);
+                geminiKey = props.getProperty("gemini.api.key");
+                input.close();
+            }
         } catch (IOException e) {
             System.out.println("Erro ao carregar propriedades: " + e.getMessage());
+        }
+        
+        String envKey = System.getenv("GEMINI_API_KEY");
+        if (envKey != null && !envKey.trim().isEmpty()) {
+            geminiKey = envKey;
         }
     }
 
     public String generateResponse(String prompt) {
         if (geminiKey == null || geminiKey.trim().isEmpty()) {
-            return "API Key n�o configurada! Verifique o arquivo application.properties";
+            return "API Key não configurada! Configure a variável de ambiente GEMINI_API_KEY ou o arquivo application.properties";
         }
 
         String promptEng = engPrompt(prompt, "pt-BR");
