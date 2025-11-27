@@ -104,7 +104,7 @@ public class GitApplication {
 
             int[] versionArray = version.toArray();
             String releaseNotesTemplate = releaseNotes.generateReleaseNotes(commits, versionArray, tag, language);
-            String intelligentReleaseNotes = geminiService.generateResponse(releaseNotesTemplate);
+            String intelligentReleaseNotes = geminiService.generateResponse(releaseNotesTemplate, language);
 
             ReleaseNotes releaseNotesDocument = new ReleaseNotes(
                     tag,
@@ -136,15 +136,15 @@ public class GitApplication {
             // Valida se o repositório BookSys existe
             validarRepositorioBookSys(repoPath);
             
-            // PASSO 15: Atualiza o repositório BookSys (fetch, checkout, pull)
+            // Atualiza o repositório BookSys
             String branchName = "main";
             atualizarRepositorioBookSys(repoPath, branchName);
 
-            // PASSO 16: Cria os arquivos de release notes no BookSys
+            // Cria os arquivos de release notes no BookSys
             System.out.println("Criando arquivos de release notes...");
             File releaseFile = criarArquivosReleaseNotes(repoPath, relativeDir, tag, releaseNotesTemplate, intelligentReleaseNotes);
 
-            // PASSO 17: Faz commit e push dos arquivos no BookSys
+            // Faz commit e push dos arquivos no BookSys
             System.out.println("Fazendo commit no BookSys...");
             fazerCommitNoBookSys(repoPath, relativeDir, tag, releaseFile, branchName);
             
@@ -386,8 +386,6 @@ public class GitApplication {
 
         String combinedOutput = (stdout + " " + stderr).toLowerCase();
         if (combinedOutput.contains("nothing to commit")) {
-            // Força commit mesmo sem mudanças
-            System.out.println("Nenhuma mudança detectada. Criando commit vazio...");
             ProcessBuilder pbEmpty = new ProcessBuilder("git", "commit", "--allow-empty", "-m", message);
             pbEmpty.directory(new File(repoPath));
             Process pEmpty = pbEmpty.start();

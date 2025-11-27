@@ -20,6 +20,7 @@ public class GitLogService {
      */
     public List<GitCommitDTO> getGitLogsSince(String ultimaTag, int daysFallback) {
         List<GitCommitDTO> commits = new ArrayList<>();
+        boolean rodandoLocal = false;
 
         try {
             // Pega qual tag usar (se não passou, busca a última)
@@ -29,7 +30,7 @@ public class GitLogService {
             }
 
             ProcessBuilder processBuilder;
-            if (tagParaUsar != null) {
+            if (tagParaUsar != null && !rodandoLocal) {
                 // Pega commits desde a tag
                 processBuilder = new ProcessBuilder(
                     "git", "log", tagParaUsar + "..HEAD",
@@ -37,7 +38,7 @@ public class GitLogService {
                 );
             } else {
                 // Não tem tag? Busca todos ou pelos dias configurados
-                if (daysFallback <= 0) {
+                if (daysFallback <= 0 || rodandoLocal) {
                     // daysFallback = 0 significa buscar TODOS os commits
                     processBuilder = new ProcessBuilder(
                         "git", "log",

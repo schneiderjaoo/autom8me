@@ -42,18 +42,19 @@ public class GeminiService {
         }
     }
 
-    public String generateResponse(String prompt) {
+    public String generateResponse(String prompt, String idioma) {
+        loadProperties();
+        
         if (geminiKey == null || geminiKey.trim().isEmpty()) {
             return "API Key não configurada! Configure a variável de ambiente GEMINI_API_KEY ou o arquivo application.properties";
         }
 
-        String promptEng = engPrompt(prompt, "pt-BR");
+        String promptEng = engPrompt(prompt, idioma);
 
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders head = new HttpHeaders();
         head.setContentType(MediaType.APPLICATION_JSON);
-
         // Usar query parameter (mais compat�vel)
         //String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + geminiKey;
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey;
