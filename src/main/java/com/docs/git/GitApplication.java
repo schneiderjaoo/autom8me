@@ -50,9 +50,9 @@ public class GitApplication {
         GeminiService geminiService = new GeminiService();
 
         // Lê configurações do application.properties
-        String repoPath = env.getProperty("app.repo.booksys.path", "/Users/user/Documents/GitClones/BookSys");
-        String relativeDir = env.getProperty("app.repo.booksys.release-notes-dir", "books/release-notes/Diário de Mudanças");
-        String targetRepoUrl = env.getProperty("app.repo.booksys.url", "https://github.com/schneiderjaoo/bookSys.git");
+        String repoPath = env.getProperty("app.repo.bookgit.path", "/Users/user/Documents/GitClones/BookGit");
+        String relativeDir = env.getProperty("app.repo.bookgit.release-notes-dir", "books/release-notes/Diário de Mudanças");
+        String targetRepoUrl = env.getProperty("app.repo.bookgit.url", "https://github.com/schneiderjaoo/bookGit.git");
         int daysFallback = Integer.parseInt(env.getProperty("app.release-notes.days-fallback", "60"));
         String originalUrl = null;
 
