@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +35,7 @@ public class GitLogService {
                 // Pega commits desde a tag
                 processBuilder = new ProcessBuilder(
                     "git", "log", tagParaUsar + "..HEAD",
-                    "--pretty=format:%H|%s|%cd", "--date=iso"
+                    "--pretty=format:%H|%s|%cd", "--date=iso", "--encoding=UTF-8"
                 );
             } else {
                 // Não tem tag? Busca todos ou pelos dias configurados
@@ -42,13 +43,13 @@ public class GitLogService {
                     // daysFallback = 0 significa buscar TODOS os commits
                     processBuilder = new ProcessBuilder(
                         "git", "log",
-                        "--pretty=format:%H|%s|%cd", "--date=iso"
+                        "--pretty=format:%H|%s|%cd", "--date=iso", "--encoding=UTF-8"
                     );
                 } else {
                     // Busca commits dos últimos X dias
                     processBuilder = new ProcessBuilder(
                         "git", "log", "--since=" + daysFallback + " days ago",
-                        "--pretty=format:%H|%s|%cd", "--date=iso"
+                        "--pretty=format:%H|%s|%cd", "--date=iso", "--encoding=UTF-8"
                     );
                 }
             }
@@ -56,7 +57,7 @@ public class GitLogService {
             // Executa o comando Git e lê os commits
             Process process = processBuilder.start();
             BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
+                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)
             );
 
             String line;
@@ -82,19 +83,19 @@ public class GitLogService {
                     // Busca TODOS os commits
                     processBuilder = new ProcessBuilder(
                         "git", "log",
-                        "--pretty=format:%H|%s|%cd", "--date=iso"
+                        "--pretty=format:%H|%s|%cd", "--date=iso", "--encoding=UTF-8"
                     );
                 } else {
                     // Busca pelos dias configurados
                     processBuilder = new ProcessBuilder(
                         "git", "log", "--since=" + daysFallback + " days ago",
-                        "--pretty=format:%H|%s|%cd", "--date=iso"
+                        "--pretty=format:%H|%s|%cd", "--date=iso", "--encoding=UTF-8"
                     );
                 }
                 
                 Process processFallback = processBuilder.start();
                 BufferedReader readerFallback = new BufferedReader(
-                    new InputStreamReader(processFallback.getInputStream())
+                    new InputStreamReader(processFallback.getInputStream(), StandardCharsets.UTF_8)
                 );
                 
                 String lineFallback;
@@ -132,7 +133,7 @@ public class GitLogService {
     private String buscarUltimaTag() {
         try {
             Process process = new ProcessBuilder("git", "describe", "--tags", "--abbrev=0").start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
             String tag = reader.readLine();
             process.waitFor();
             

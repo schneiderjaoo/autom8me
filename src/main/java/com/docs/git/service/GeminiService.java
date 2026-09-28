@@ -8,6 +8,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +30,7 @@ public class GeminiService {
             Properties props = new Properties();
             InputStream input = getClass().getClassLoader().getResourceAsStream("application.properties");
             if (input != null) {
-                props.load(input);
+                props.load(new InputStreamReader(input, StandardCharsets.UTF_8));
                 geminiKey = props.getProperty("gemini.api.key");
                 input.close();
             }
@@ -54,8 +56,8 @@ public class GeminiService {
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders head = new HttpHeaders();
-        head.setContentType(MediaType.APPLICATION_JSON);
-        // Usar query parameter (mais compat�vel)
+        head.setContentType(new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8));
+        // Usar query parameter (mais compatível)
         //String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + geminiKey;
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey;
 
