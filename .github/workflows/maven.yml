@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: ["*"]
 
+env:
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8"
+  MAVEN_OPTS: "-Dfile.encoding=UTF-8"
+
 jobs:
   build:
     runs-on: ubuntu-latest
