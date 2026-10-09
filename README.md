@@ -470,7 +470,7 @@ Se preferir executar sem Docker:
    java -jar target/git-0.0.1-SNAPSHOT.jar
    ```
 
-### **8.2 Configuração GitHub Actions**
+### **8.3 Configuração GitHub Actions**
 
 1. **Configurar Secrets no GitHub:**
    - `GEMINI_API_KEY`: Chave da API do Google Gemini (obrigatório)
@@ -480,7 +480,7 @@ Se preferir executar sem Docker:
 2. **Workflow automático:**
    O workflow `.github/workflows/generate-release-notes.yml` é executado automaticamente após push na branch `main` ou `master`.
 
-### **8.3 Estrutura de Arquivos Gerados**
+### **8.4 Estrutura de Arquivos Gerados**
 
 Os arquivos são gerados no repositório BookSys na pasta configurada:
 
